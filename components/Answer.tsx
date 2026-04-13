@@ -1,7 +1,13 @@
 import Image from "next/image";
 import { Toaster, toast } from "react-hot-toast";
 
-export default function Answer({ answer }: { answer: string }) {
+export default function Answer({
+  answer,
+  durationSeconds,
+}: {
+  answer: string;
+  durationSeconds?: number;
+}) {
   // Function to strip HTML tags from the answer
   const stripHtml = (html: string) => {
     const tmp = document.createElement('div');
@@ -34,6 +40,11 @@ export default function Answer({ answer }: { answer: string }) {
             <h3 className="text-base font-bold uppercase text-black">
               Answer:{" "}
             </h3>
+            {typeof durationSeconds === "number" && (
+              <span className="self-center text-xs font-medium tabular-nums text-[#1B1B16]/60">
+                {durationSeconds.toFixed(2)}s
+              </span>
+            )}
           </div>
           {answer && (
             <div className="flex items-center gap-3">

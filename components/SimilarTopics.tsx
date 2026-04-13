@@ -4,10 +4,14 @@ const SimilarTopics = ({
   similarQuestions,
   handleDisplayResult,
   reset,
+  durationSeconds,
+  isLoading,
 }: {
   similarQuestions: string[];
   handleDisplayResult: (item: string) => void;
   reset: () => void;
+  durationSeconds?: number;
+  isLoading?: boolean;
 }) => {
   return (
     <div className="container flex h-auto w-full shrink-0 gap-4 rounded-lg border border-solid border-[#C2C2C2] bg-white p-4 lg:p-8">
@@ -33,10 +37,21 @@ const SimilarTopics = ({
           <h3 className="text-base font-bold uppercase text-black">
             Similar topics:{" "}
           </h3>
+          {typeof durationSeconds === "number" && (
+            <span className="ml-auto self-center text-xs font-medium tabular-nums text-[#1B1B16]/60">
+              {durationSeconds.toFixed(2)}s
+            </span>
+          )}
         </div>
 
         <div className="w-full">
-          {similarQuestions.length > 0 ? (
+          {isLoading ? (
+            <>
+              <div className="mb-4 h-10 w-full animate-pulse rounded-md bg-gray-300" />
+              <div className="mb-4 h-10 w-full animate-pulse rounded-md bg-gray-300" />
+              <div className="h-10 w-full animate-pulse rounded-md bg-gray-300" />
+            </>
+          ) : similarQuestions.length > 0 ? (
             similarQuestions.map((item, index) => (
               <button
                 className={`flex w-full cursor-pointer items-center gap-4 py-4 text-left ${
@@ -63,11 +78,9 @@ const SimilarTopics = ({
               </button>
             ))
           ) : (
-            <>
-              <div className="mb-4 h-10 w-full animate-pulse rounded-md bg-gray-300" />
-              <div className="mb-4 h-10 w-full animate-pulse rounded-md bg-gray-300" />
-              <div className="h-10 w-full animate-pulse rounded-md bg-gray-300" />
-            </>
+            <div className="py-2 text-sm font-light text-[#1B1B16]/60">
+              No related questions found.
+            </div>
           )}
         </div>
       </div>

@@ -1,17 +1,23 @@
 import Image from "next/image";
 import { FC } from "react";
 import InputArea from "./InputArea";
+import ProviderToggle from "./ProviderToggle";
+import type { SearchProvider } from "@/app/page";
 
 type THeroProps = {
   promptValue: string;
   setPromptValue: React.Dispatch<React.SetStateAction<string>>;
   handleDisplayResult: () => void;
+  provider: SearchProvider;
+  setProvider: (p: SearchProvider) => void;
 };
 
 const Hero: FC<THeroProps> = ({
   promptValue,
   setPromptValue,
   handleDisplayResult,
+  provider,
+  setProvider,
 }) => {
   const handleClickSuggestion = (value: string) => {
     setPromptValue(value);
@@ -34,12 +40,19 @@ const Hero: FC<THeroProps> = ({
       </h2>
 
       {/* input section */}
-      <div className="w-full max-w-[708px] pb-6">
+      <div className="w-full max-w-[708px] pb-3">
         <InputArea
           promptValue={promptValue}
           setPromptValue={setPromptValue}
           handleDisplayResult={handleDisplayResult}
+          provider={provider}
+          setProvider={setProvider}
         />
+      </div>
+
+      {/* provider selector */}
+      <div className="pb-4">
+        <ProviderToggle provider={provider} setProvider={setProvider} />
       </div>
 
       {/* Suggestions section */}

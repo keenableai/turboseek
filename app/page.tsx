@@ -11,6 +11,14 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { SearchResults } from "@/utils/sharedTypes";
 
+export type SearchProvider = "exa" | "keenable";
+
+type Timings = {
+  sources?: number;
+  answer?: number;
+  similar?: number;
+};
+
 export default function Home() {
   const [promptValue, setPromptValue] = useState("");
   const [question, setQuestion] = useState("");
@@ -19,7 +27,10 @@ export default function Home() {
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [answer, setAnswer] = useState("");
   const [similarQuestions, setSimilarQuestions] = useState<string[]>([]);
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [provider, setProvider] = useState<SearchProvider>("exa");
+  const [timings, setTimings] = useState<Timings>({});
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const handleDisplayResult = async (newQuestion?: string) => {
@@ -29,6 +40,7 @@ export default function Home() {
     setLoading(true);
     setQuestion(newQuestion);
     setPromptValue("");
+    setTimings({});
 
     await handleSourcesAndAnswer(newQuestion);
 
@@ -37,9 +49,10 @@ export default function Home() {
 
   async function handleSourcesAndAnswer(question: string) {
     setIsLoadingSources(true);
+    const sourcesStart = performance.now();
     let sourcesResponse = await fetch("/api/getSources", {
       method: "POST",
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, provider }),
     });
     let sourcesLocal = [];
     if (sourcesResponse.ok) {
@@ -48,11 +61,14 @@ export default function Home() {
     } else {
       setSources([]);
     }
+    const sourcesDuration = (performance.now() - sourcesStart) / 1000;
+    setTimings((t) => ({ ...t, sources: sourcesDuration }));
     setIsLoadingSources(false);
 
     // Generate similar questions using both question and sources
     handleSimilarQuestions(question, sourcesLocal);
 
+    const answerStart = performance.now();
     const response = await fetch("/api/getAnswer", {
       method: "POST",
       headers: {
@@ -90,18 +106,28 @@ export default function Home() {
         setAnswer(accumulatedText);
       }
     }
+    const answerDuration = (performance.now() - answerStart) / 1000;
+    setTimings((t) => ({ ...t, answer: answerDuration }));
   }
 
   async function handleSimilarQuestions(
     question: string,
     sources: SearchResults[],
   ) {
-    let res = await fetch("/api/getSimilarQuestions", {
-      method: "POST",
-      body: JSON.stringify({ question, sources }),
-    });
-    let questions = await res.json();
-    setSimilarQuestions(questions);
+    setIsLoadingSimilar(true);
+    const similarStart = performance.now();
+    try {
+      let res = await fetch("/api/getSimilarQuestions", {
+        method: "POST",
+        body: JSON.stringify({ question, sources }),
+      });
+      let questions = await res.json();
+      setSimilarQuestions(questions);
+    } finally {
+      const similarDuration = (performance.now() - similarStart) / 1000;
+      setTimings((t) => ({ ...t, similar: similarDuration }));
+      setIsLoadingSimilar(false);
+    }
   }
 
   const reset = () => {
@@ -111,6 +137,8 @@ export default function Home() {
     setAnswer("");
     setSources([]);
     setSimilarQuestions([]);
+    setIsLoadingSimilar(false);
+    setTimings({});
   };
 
   return (
@@ -122,6 +150,8 @@ export default function Home() {
             promptValue={promptValue}
             setPromptValue={setPromptValue}
             handleDisplayResult={handleDisplayResult}
+            provider={provider}
+            setProvider={setProvider}
           />
         )}
 
@@ -146,12 +176,19 @@ export default function Home() {
                   <div className="grow">&quot;{question}&quot;</div>
                 </div>
                 <>
-                  <Sources sources={sources} isLoading={isLoadingSources} />
-                  <Answer answer={answer} />
+                  <Sources
+                    sources={sources}
+                    isLoading={isLoadingSources}
+                    durationSeconds={timings.sources}
+                    provider={provider}
+                  />
+                  <Answer answer={answer} durationSeconds={timings.answer} />
                   <SimilarTopics
                     similarQuestions={similarQuestions}
                     handleDisplayResult={handleDisplayResult}
                     reset={reset}
+                    durationSeconds={timings.similar}
+                    isLoading={isLoadingSimilar}
                   />
                 </>
               </div>
@@ -165,6 +202,8 @@ export default function Home() {
                 handleDisplayResult={handleDisplayResult}
                 disabled={loading}
                 reset={reset}
+                provider={provider}
+                setProvider={setProvider}
               />
             </div>
           </div>
