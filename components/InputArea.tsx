@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { FC } from "react";
 import TypeAnimation from "./TypeAnimation";
+import ProviderToggle from "./ProviderToggle";
+import type { SearchProvider } from "@/app/page";
 
 type TInputAreaProps = {
   promptValue: string;
@@ -8,6 +10,8 @@ type TInputAreaProps = {
   handleDisplayResult: () => void;
   disabled?: boolean;
   reset?: () => void;
+  provider: SearchProvider;
+  setProvider: (p: SearchProvider) => void;
 };
 
 const InputArea: FC<TInputAreaProps> = ({
@@ -16,10 +20,12 @@ const InputArea: FC<TInputAreaProps> = ({
   handleDisplayResult,
   disabled,
   reset,
+  provider,
+  setProvider,
 }) => {
   return (
     <form
-      className="mx-auto flex h-[66px] w-full items-center justify-between rounded-lg border bg-white px-3 shadow-[2px_2px_38px_0px_rgba(0,0,0,0.25),0px_-2px_4px_0px_rgba(0,0,0,0.25)_inset,1px_2px_4px_0px_rgba(0,0,0,0.25)_inset]"
+      className="mx-auto flex h-[66px] w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 shadow-[2px_2px_38px_0px_rgba(0,0,0,0.25),0px_-2px_4px_0px_rgba(0,0,0,0.25)_inset,1px_2px_4px_0px_rgba(0,0,0,0.25)_inset]"
       onSubmit={(e) => {
         e.preventDefault();
         if (reset) reset();
@@ -35,6 +41,13 @@ const InputArea: FC<TInputAreaProps> = ({
         required
         onChange={(e) => setPromptValue(e.target.value)}
       />
+      <div className="hidden sm:block">
+        <ProviderToggle
+          provider={provider}
+          setProvider={setProvider}
+          disabled={disabled}
+        />
+      </div>
       <button
         disabled={disabled}
         type="submit"
