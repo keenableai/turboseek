@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/togetherai": "^1.0.29",
+    "@opentelemetry/api": "^1.9.1",
+    "@vercel/otel": "^2.1.2",
     "ai": "^5.0.106",
     "exa-js": "^2.0.11",
     "next": "16.0.10",
