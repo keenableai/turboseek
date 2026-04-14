@@ -9,7 +9,7 @@ import SimilarTopics from "@/components/SimilarTopics";
 import Sources from "@/components/Sources";
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { SearchResults } from "@/utils/sharedTypes";
+import { SearchResults, TraceEntry, SourcesResponse } from "@/utils/sharedTypes";
 
 export type SearchProvider = "exa" | "keenable";
 
@@ -31,6 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<SearchProvider>("exa");
   const [timings, setTimings] = useState<Timings>({});
+  const [sourcesTrace, setSourcesTrace] = useState<TraceEntry[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const handleDisplayResult = async (newQuestion?: string) => {
@@ -41,6 +42,7 @@ export default function Home() {
     setQuestion(newQuestion);
     setPromptValue("");
     setTimings({});
+    setSourcesTrace([]);
 
     await handleSourcesAndAnswer(newQuestion);
 
@@ -54,12 +56,15 @@ export default function Home() {
       method: "POST",
       body: JSON.stringify({ question, provider }),
     });
-    let sourcesLocal = [];
+    let sourcesLocal: SearchResults[] = [];
     if (sourcesResponse.ok) {
-      sourcesLocal = await sourcesResponse.json();
+      const payload: SourcesResponse = await sourcesResponse.json();
+      sourcesLocal = payload.results || [];
       setSources(sourcesLocal);
+      setSourcesTrace(payload.trace || []);
     } else {
       setSources([]);
+      setSourcesTrace([]);
     }
     const sourcesDuration = (performance.now() - sourcesStart) / 1000;
     setTimings((t) => ({ ...t, sources: sourcesDuration }));
@@ -139,6 +144,7 @@ export default function Home() {
     setSimilarQuestions([]);
     setIsLoadingSimilar(false);
     setTimings({});
+    setSourcesTrace([]);
   };
 
   return (
@@ -181,6 +187,7 @@ export default function Home() {
                     isLoading={isLoadingSources}
                     durationSeconds={timings.sources}
                     provider={provider}
+                    trace={sourcesTrace}
                   />
                   <Answer answer={answer} durationSeconds={timings.answer} />
                   <SimilarTopics

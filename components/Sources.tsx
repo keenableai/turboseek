@@ -1,6 +1,6 @@
 import Image from "next/image";
 import SourceCard from "./SourceCard";
-import { SearchResults } from "@/utils/sharedTypes";
+import { SearchResults, TraceEntry } from "@/utils/sharedTypes";
 import type { SearchProvider } from "@/app/page";
 
 export default function Sources({
@@ -8,12 +8,16 @@ export default function Sources({
   isLoading,
   durationSeconds,
   provider,
+  trace,
 }: {
   sources: SearchResults[];
   isLoading: boolean;
   durationSeconds?: number;
   provider?: SearchProvider;
+  trace?: TraceEntry[];
 }) {
+  const traceTotalMs = trace?.reduce((a, t) => a + t.durationMs, 0) ?? 0;
+
   return (
     <div className="container h-auto w-full shrink-0 rounded-lg border border-solid border-[#C2C2C2] bg-white p-4 lg:p-8">
       <div className="flex items-start gap-4 pb-3 lg:pb-3.5">
@@ -38,6 +42,47 @@ export default function Sources({
           </span>
         )}
       </div>
+
+      {trace && trace.length > 0 && (
+        <details className="mb-3 rounded-md border border-[#E5E5E5] bg-[#FAFAF7] text-xs">
+          <summary className="cursor-pointer select-none px-3 py-2 font-medium text-[#1B1B16]/80">
+            Trace ({trace.length} call{trace.length === 1 ? "" : "s"} ·{" "}
+            {(traceTotalMs / 1000).toFixed(2)}s server time)
+          </summary>
+          <div className="divide-y divide-[#E5E5E5]">
+            {trace.map((t, i) => {
+              const statusColor = t.ok
+                ? "text-green-700"
+                : t.status === null
+                  ? "text-red-700"
+                  : "text-orange-700";
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-1.5 font-mono"
+                >
+                  <span className="w-36 shrink-0 font-semibold text-[#1B1B16]">
+                    {t.label}
+                  </span>
+                  <span className={`w-10 shrink-0 tabular-nums ${statusColor}`}>
+                    {t.status ?? "ERR"}
+                  </span>
+                  <span className="w-16 shrink-0 text-right tabular-nums text-[#1B1B16]/70">
+                    {t.durationMs.toFixed(0)} ms
+                  </span>
+                  <span
+                    className="truncate text-[#1B1B16]/60"
+                    title={t.target}
+                  >
+                    {t.target}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      )}
+
       <div className="flex w-full max-w-[890px] flex-wrap content-center items-center gap-[15px]">
         {isLoading ? (
           <>
