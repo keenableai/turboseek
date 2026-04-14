@@ -1,7 +1,7 @@
 import Exa from "exa-js";
 import Together from "together-ai";
 import { createTogetherAI } from '@ai-sdk/togetherai';
-import { SearchResults } from "./sharedTypes";
+import { SearchResults, TraceEntry } from "./sharedTypes";
 
 
 export const togetherClient = new Together({
@@ -31,17 +31,28 @@ type KeenableFetchResponse = { url: string; title?: string; content: string };
 export async function keenableSearch(
   query: string,
   { limit = 9, excludeDomains = [] as string[] }: { limit?: number; excludeDomains?: string[] } = {},
-): Promise<SearchResults[]> {
+): Promise<{ results: SearchResults[]; trace: TraceEntry[] }> {
   const apiKey = process.env.KEENABLE_API_KEY;
   if (!apiKey) throw new Error("KEENABLE_API_KEY is not set");
 
-  const searchRes = await fetch(`${KEENABLE_BASE_URL}/v1/search`, {
+  const trace: TraceEntry[] = [];
+
+  const searchUrl = `${KEENABLE_BASE_URL}/v1/search`;
+  const searchStart = performance.now();
+  const searchRes = await fetch(searchUrl, {
     method: "POST",
     headers: {
       "X-API-Key": apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query }),
+  });
+  trace.push({
+    label: "POST /v1/search",
+    target: searchUrl,
+    status: searchRes.status,
+    ok: searchRes.ok,
+    durationMs: performance.now() - searchStart,
   });
 
   if (!searchRes.ok) {
@@ -64,11 +75,19 @@ export async function keenableSearch(
 
   const withContent = await Promise.all(
     filtered.map(async (r): Promise<SearchResults> => {
+      const fetchStart = performance.now();
       try {
         const fetchRes = await fetch(
           `${KEENABLE_BASE_URL}/v1/fetch?url=${encodeURIComponent(r.url)}`,
           { headers: { "X-API-Key": apiKey } },
         );
+        trace.push({
+          label: "GET /v1/fetch",
+          target: r.url,
+          status: fetchRes.status,
+          ok: fetchRes.ok,
+          durationMs: performance.now() - fetchStart,
+        });
         if (!fetchRes.ok) {
           return { title: r.title, url: r.url, content: r.description || "" };
         }
@@ -78,11 +97,18 @@ export async function keenableSearch(
           url: r.url,
           content: body.content || r.description || "",
         };
-      } catch {
+      } catch (err) {
+        trace.push({
+          label: "GET /v1/fetch",
+          target: r.url,
+          status: null,
+          ok: false,
+          durationMs: performance.now() - fetchStart,
+        });
         return { title: r.title, url: r.url, content: r.description || "" };
       }
     }),
   );
 
-  return withContent;
+  return { results: withContent, trace };
 }
